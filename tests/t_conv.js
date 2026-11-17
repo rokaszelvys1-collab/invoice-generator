@@ -1,0 +1,26 @@
+const fs=require('fs');const {JSDOM}=require('jsdom');const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
+const d=new JSDOM(html,{runScripts:'dangerously',url:'https://x.test/',pretendToBeVisual:true});const w=d.window,doc=w.document;
+const click=s=>{const e=doc.querySelector(s);if(!e)throw new Error('missing '+s);e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}))},type=(s,v)=>{const e=doc.querySelector(s);if(!e)throw new Error('missing '+s);e.value=v;e.dispatchEvent(new w.Event('input',{bubbles:true}))};
+let f=0;const A=(c,m)=>{console.log(c?'ok  ':'FAIL',m);if(!c)f++};
+setTimeout(()=>{
+  click('[data-act="new"]');
+  A(!doc.querySelector('#convbox').textContent,'no offer on a new invoice');
+  type('#e-cur','PLN');A(!doc.querySelector('#convbox').textContent,'no offer when there are no prices');
+  type('#e-cur','EUR');type('#e-cq','Test');type('[data-l="0"][data-k="name"]','Dalis');type('[data-l="0"][data-k="price"]','100');
+  type('#e-cur','PLN');A(doc.querySelector('#convbox').textContent.includes('(EUR)')&&doc.querySelector('[data-l="0"][data-k="price"]').value==='100','offer shown, price untouched: '+doc.querySelector('#convbox').textContent.trim());
+  A(doc.querySelector('#e-rate').value==='4,25'&&doc.querySelector('#ratelbl').textContent==='Kursas, PLN už 1 EUR','rate shown with comma');
+  type('#e-cur','GBP');A(doc.querySelector('#convbox').textContent.includes('(EUR)')&&doc.querySelector('#convbox').textContent.includes('GBP'),'still offered from EUR after a second change');
+  click('[data-act="conv"]');A(doc.querySelector('[data-l="0"][data-k="price"]').value==='87'&&!doc.querySelector('#convbox').textContent,'converted 100 EUR -> 87 GBP: '+doc.querySelector('[data-l="0"][data-k="price"]').value);
+  type('#e-cur','EUR');A(doc.querySelector('#convbox').textContent.includes('(GBP)'),'offer back from GBP');click('[data-act="conv"]');
+  A(doc.querySelector('[data-l="0"][data-k="price"]').value==='100','back to 100 EUR: '+doc.querySelector('[data-l="0"][data-k="price"]').value);
+  type('#e-cur','PLN');type('#e-cur','EUR');A(!doc.querySelector('#convbox').textContent,'returning to the original currency clears the offer');
+  type('#e-cur','PLN');click('[data-act="saveFinal"]');
+  setTimeout(()=>{const inv=w.eval("S.invoices.find(i=>i.no===4808)");A(inv&&inv._conv===undefined&&inv.currency==='PLN','_conv is not stored with the invoice');
+    A(doc.querySelector('#dw .bigsum').textContent.replace(/\s/g,'')==='121,00zł','drawer total '+doc.querySelector('#dw .bigsum').textContent);
+    A(doc.querySelector('#p-amt').value==='121,00','payment amount with comma');click('#dw [data-act="pay"]');
+    setTimeout(()=>{A(doc.querySelector('#dw').textContent.includes('Apmokėta visa suma'),'paid with comma amount');
+      click('#dw [data-act="close"]');click('[data-v="pradzia"]');A(doc.querySelector('#main .stats')&&doc.querySelectorAll('#main .cols .block').length===2,'home blocks');
+      click('[data-act="showOpen"]');A(doc.querySelector('.tabs .on').textContent.startsWith('Neapmokėtos'),'showOpen opens the unpaid tab');
+      click('[data-v="nustatymai"]');const r=doc.querySelector('[data-s="ossRates.FI"]');A(r.value==='25,5','rate with comma '+r.value);r.value='25,5';r.dispatchEvent(new w.Event('input',{bubbles:true}));A(w.eval('S.settings.ossRates.FI')===25.5,'comma rate parsed');
+      const dl=doc.querySelector('[data-s="defLang"]');A(dl.value==='lt'&&dl.options.length===3,'language select values');
+      console.log(f?'FAILED '+f:'CONV PASSED');process.exit(f?1:0)},40)},60)},80);

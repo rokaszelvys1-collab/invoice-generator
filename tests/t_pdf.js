@@ -1,0 +1,14 @@
+const fs=require('fs');const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
+const core=html.split('/*CORE-START*/')[1].split('/*CORE-END*/')[0];
+const C=new Function(core+';return {invoiceDoc,pdfDef,vatRule,totals,amountWords,OSS_DEFAULT,isLocked}')();
+const logo=fs.readFileSync(require('path').join(__dirname,'..','assets','logo.b64'),'utf8').trim();
+const s={ltRate:21,oss:true,ossRates:C.OSS_DEFAULT,company:{name:'UAB Sakorus',code:'304707759',vat:'LT100012259112',address:'Daumilų g. 2D, Daumilai, Švenčionių r.',phone:'+370 000 00000',bank:'Swedbank',bankCode:'73000',swift:'HABALT22',iban:'LT00 0000 0000 0000 0000',signer:'Rokas Želvys',role:''}};
+const inv=(o)=>Object.assign({type:'vat',status:'final',series:'SAK',no:4807,lang:'lt',date:'2026-11-16',due:'',currency:'EUR',rate:1,discount:0,notes:'',payMethod:'',delivery:'',vatNote:''},o);
+const A=inv({buyer:{name:'Lukas Bacevičius',country:'LT',type:'p'},lines:[{name:'Honda Jazz IV GR Priešrūkinis žibintas priekyje',unit:'vnt.',qty:1,price:85,vat:21},{name:'Honda Jazz IV GR Priešrūkinis žibintas priekyje',unit:'vnt.',qty:1,price:85,vat:21},{name:'Siuntimas',unit:'vnt.',qty:1,price:4,vat:21}]});
+const B=inv({no:4810,lang:'pl',currency:'PLN',rate:4.25,discount:5,due:'2026-12-01',buyer:{name:'Przykład Części Sp. z o.o.',code:'0000123456',vat:'',address:'ul. Przykładowa 7, 00-001 Warszawa',country:'PL',type:'p'},vatNote:'VAT naliczony według stawki kraju nabywcy (PL), rozliczany w procedurze OSS.',payMethod:'Przelew',
+  lines:[{name:'Skrzynia biegów Audi A6 C7 0B5 – używana, sprawdzona, gwarancja rozruchowa 30 dni',unit:'vnt.',qty:1,price:7800,vat:23},{name:'Wysyłka paletowa',unit:'vnt.',qty:1,price:420.5,vat:23},{name:'Książka serwisowa',unit:'vnt.',qty:2,price:15,vat:8}]});
+const Cc=inv({no:4811,lang:'en',currency:'GBP',rate:0.87,buyer:{name:'Sample Motors Ltd',address:'1 Sample Road, Leeds',country:'GB',type:'b'},vatNote:'VAT 0% – export of goods outside the EU.',payMethod:'Bank transfer',lines:Array.from({length:46},(_,k)=>({name:'Part '+(k+1)+' – rear light assembly',unit:'vnt.',qty:1+k%3,price:20+k,vat:0}))});
+console.log(C.invoiceDoc(A,s).words,'|',C.invoiceDoc(B,s).words,'|',C.invoiceDoc(Cc,s).words,'|',C.invoiceDoc(A,s).file);
+console.log('credit words:',C.amountWords(-210.54,'EUR','lt'),'| lock',C.isLocked(A),C.isLocked({status:'draft',type:'vat'}),C.isLocked({status:'final',type:'pro'}));
+const pdfMake=require('pdfmake/build/pdfmake.js');const v=require('pdfmake/build/vfs_fonts.js');pdfMake.vfs=v.pdfMake?v.pdfMake.vfs:v;
+let n=0;[['a',A],['b',B],['c',Cc]].forEach(([k,i])=>pdfMake.createPdf(C.pdfDef(C.invoiceDoc(i,s),logo)).getBuffer(buf=>{fs.writeFileSync(require('path').join(__dirname,'out_'+k+'.pdf'),buf);console.log(k,buf.length,'bytes');if(++n===3)process.exit(0)}));

@@ -1,0 +1,12 @@
+{
+  "name": "invoice-generator",
+  "private": true,
+  "description": "KOR Supply sąskaitos: invoicing for UAB Sakorus (OSS VAT per country, currency per invoice, VIES check, locked numbering, PDF and e-mail).",
+  "scripts": {
+    "test": "node tests/tests.js && node tests/t_conv.js && node tests/t2.js && node tests/t_pdf.js"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.1",
+    "pdfmake": "0.2.7"
+  }
+}

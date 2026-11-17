@@ -1,0 +1,10 @@
+const fs=require('fs');const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');const {JSDOM}=require('jsdom');
+const web=[{"url":"https://rekvizitai.vz.lt/imone/recaras/","title":"Recaras UAB, Kauno r. - rekvizitai, įmonės kodas, adresas","description":"UAB Recaras – Garažų g. 4A, Narėpų k., LT-54470 Kauno r. Veikla: kompiuterių programinės įrangos kūrimas. Įmonės kodas 303309407, įkurta 2014."},{"url":"https://rekvizitai.vz.lt/imone/recaras/juridinis-asmuo/","title":"UAB Recaras juridinio asmens duomenys ... - Rekvizitai.lt","description":"UAB Recaras Adresas: Garažų g. 4A, Narėpų k., LT-54470 Kauno r. Tel.: +370 614 27277 Įmonės kodas: 303309407 PVM mokėtojo kodas: LT100010882013 A/s: LT ..."}];
+const d=new JSDOM(html,{runScripts:'dangerously',url:'https://x.test/',pretendToBeVisual:true,beforeParse(w){w.claude={use:async n=>n==='mcp'?{callTool:async(s,t,i)=>t==='firecrawl_scrape'?{payload:{markdown:'```json\n{"isValid":true,"name":"UAB \\"Recaras\\"","address":"N/A"}\n```'}}:{payload:{success:true,data:{web}}}}:null}}});
+const errs=[];d.window.addEventListener('error',e=>errs.push(e.message));
+setTimeout(async()=>{const w=d.window,doc=w.document;const click=sel=>doc.querySelector(sel).dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
+ const type=(sel,v)=>{const e=doc.querySelector(sel);e.value=v;e.dispatchEvent(new w.Event('input',{bubbles:true}))};
+ click('[data-act="new"]');type('#e-cq','Recaras');type('#b-vat','LT100010882013');click('[data-act="lookup"]');
+ await new Promise(r=>setTimeout(r,200));console.log(doc.querySelector('#e-lk').textContent.replace(/\s+/g,' '));
+ click('[data-act="lkPick"]');console.log([doc.querySelector('#e-cq').value,doc.querySelector('#b-code').value,doc.querySelector('#b-vat').value,doc.querySelector('#b-address').value]);
+ console.log('errors',errs);process.exit(0)},300);
